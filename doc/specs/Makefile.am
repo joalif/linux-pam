@@ -12,9 +12,9 @@ draft-morgan-pam-current.txt: padout draft-morgan-pam.raw
 AM_YFLAGS = -d
 
 CC = @CC_FOR_BUILD@
-CPPFLAGS = @BUILD_CPPFLAGS@
-CFLAGS = @BUILD_CFLAGS@
-LDFLAGS = @BUILD_LDFLAGS@
+AM_CPPFLAGS = @BUILD_CPPFLAGS@
+AM_CFLAGS = @BUILD_CFLAGS@
+AM_LDFLAGS = @BUILD_LDFLAGS@
 
 padout_CFLAGS = $(WARN_CFLAGS) -Wno-unused-function -Wno-sign-compare
 

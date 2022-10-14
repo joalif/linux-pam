@@ -273,6 +273,12 @@
                   (Linux 2.6.12 and higher)</para>
               </listitem>
             </varlistentry>
+            <varlistentry>
+              <term><option>chroot</option></term>
+              <listitem>
+                <para>the directory to chroot the user to</para>
+              </listitem>
+            </varlistentry>
           </variablelist>
         </listitem>
       </varlistentry>

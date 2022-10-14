@@ -123,6 +123,10 @@ static int _pam_parse_conf_file(pam_handle_t *pamh, FILE *f
 		    module_type = PAM_T_ACCT;
 		} else if (!strcasecmp("password", tok)) {
 		    module_type = PAM_T_PASS;
+		} else if (!strcasecmp("@include", tok)) {
+		    pam_include = 1;
+		    module_type = requested_module_type;
+		    goto parsing_done;
 		} else {
 		    /* Illegal module type */
 		    D(("_pam_init_handlers: bad module type: %s", tok));
@@ -193,8 +197,10 @@ static int _pam_parse_conf_file(pam_handle_t *pamh, FILE *f
 		_pam_set_default_control(actions, _PAM_ACTION_BAD);
 	    }
 
+parsing_done:
 	    tok = _pam_StrTok(NULL, " \n\t", &nexttok);
 	    if (pam_include) {
+		struct stat include_dir;
 		if (substack) {
 		    res = _pam_add_handler(pamh, PAM_HT_SUBSTACK, other,
 				stack_level, module_type, actions, tok,
@@ -205,13 +211,35 @@ static int _pam_parse_conf_file(pam_handle_t *pamh, FILE *f
 			return PAM_ABORT;
 		    }
 		}
-		if (_pam_load_conf_file(pamh, tok, this_service, module_type,
-		    stack_level + substack
+		if (tok[0] == '/') {
+		    if (_pam_load_conf_file(pamh, tok, this_service,
+		                            module_type, stack_level + substack
+#ifdef PAM_READ_BOTH_CONFS
+		                            , !other
+#endif /* PAM_READ_BOTH_CONFS */
+		       ) == PAM_SUCCESS)
+			continue;
+		}
+		else if (!stat(PAM_CONFIG_D, &include_dir)
+		         && S_ISDIR(include_dir.st_mode))
+		{
+		    char *include_file;
+		    if (asprintf (&include_file, PAM_CONFIG_DF, tok) < 0) {
+			pam_syslog(pamh, LOG_CRIT, "asprintf failed");
+			return PAM_ABORT;
+		    }
+		    if (_pam_load_conf_file(pamh, include_file, this_service,
+		                            module_type, stack_level + substack
 #ifdef PAM_READ_BOTH_CONFS
 					      , !other
 #endif /* PAM_READ_BOTH_CONFS */
-		    ) == PAM_SUCCESS)
-		    continue;
+		       ) == PAM_SUCCESS)
+		    {
+			free(include_file);
+			continue;
+		    }
+		    free(include_file);
+		}
 		_pam_set_default_control(actions, _PAM_ACTION_BAD);
 		mod_path = NULL;
 		handler_type = PAM_HT_MUST_FAIL;
@@ -707,7 +735,27 @@ _pam_load_module(pam_handle_t *pamh, const char *mod_path, int handler_type)
 	success = PAM_ABORT;
 
 	D(("_pam_load_module: _pam_dlopen(%s)", mod_path));
-	mod->dl_handle = _pam_dlopen(mod_path);
+	if (mod_path[0] == '/') {
+	    mod->dl_handle = _pam_dlopen(mod_path);
+	} else {
+	    char *mod_full_path = NULL;
+	    if (asprintf(&mod_full_path, "%s%s",
+	                 DEFAULT_MODULE_PATH, mod_path) >= 0) {
+		mod->dl_handle = _pam_dlopen(mod_full_path);
+		_pam_drop(mod_full_path);
+	    } else {
+		pam_syslog(pamh, LOG_CRIT, "cannot malloc full mod path");
+	    }
+           if (!mod->dl_handle) {
+               if (asprintf(&mod_full_path, "%s/%s",
+                            _PAM_ISA, mod_path) >= 0) {
+                   mod->dl_handle = _pam_dlopen(mod_full_path);
+                   _pam_drop(mod_full_path);
+               } else {
+                   pam_syslog(pamh, LOG_CRIT, "cannot malloc full mod path");
+               }
+	    }
+	}
 	D(("_pam_load_module: _pam_dlopen'ed"));
 	D(("_pam_load_module: dlopen'ed"));
 	if (mod->dl_handle == NULL) {
@@ -784,7 +832,6 @@ int _pam_add_handler(pam_handle_t *pamh
     struct handler **handler_p2;
     struct handlers *the_handlers;
     const char *sym, *sym2;
-    char *mod_full_path;
     servicefn func, func2;
     int mod_type = PAM_MT_FAULTY_MOD;
 
@@ -796,16 +843,7 @@ int _pam_add_handler(pam_handle_t *pamh
 
     if ((handler_type == PAM_HT_MODULE || handler_type == PAM_HT_SILENT_MODULE) &&
 	mod_path != NULL) {
-	if (mod_path[0] == '/') {
-	    mod = _pam_load_module(pamh, mod_path, handler_type);
-	} else if (asprintf(&mod_full_path, "%s%s",
-			     DEFAULT_MODULE_PATH, mod_path) >= 0) {
-	    mod = _pam_load_module(pamh, mod_full_path, handler_type);
-	    _pam_drop(mod_full_path);
-	} else {
-	    pam_syslog(pamh, LOG_CRIT, "cannot malloc full mod path");
-	    return PAM_ABORT;
-	}
+	mod = _pam_load_module(pamh, mod_path, handler_type);
 
 	if (mod == NULL) {
 	    /* if we get here with NULL it means allocation error */

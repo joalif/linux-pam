@@ -772,9 +772,12 @@ pam_sm_setcred (pam_handle_t *pamh, int flags,
     unsigned setting;
 
     /* only interested in establishing credentials */
+    /* PAM docs say that an empty flag is to be treated as PAM_ESTABLISH_CRED.
+       Some people just pass PAM_SILENT, so cope with it, too. */
 
     setting = flags;
-    if (!(setting & (PAM_ESTABLISH_CRED | PAM_REINITIALIZE_CRED))) {
+    if (!(setting & (PAM_ESTABLISH_CRED | PAM_REINITIALIZE_CRED))
+        && (setting != 0) && (setting != PAM_SILENT)) {
 	D(("ignoring call - not for establishing credentials"));
 	return PAM_SUCCESS;            /* don't fail because of this */
     }

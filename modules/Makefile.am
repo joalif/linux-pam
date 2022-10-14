@@ -49,6 +49,7 @@ SUBDIRS := \
 	pam_echo \
 	pam_env \
 	pam_exec \
+	pam_extrausers \
 	pam_faildelay \
 	pam_faillock \
 	pam_filter \

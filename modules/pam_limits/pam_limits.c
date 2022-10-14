@@ -94,6 +94,7 @@ struct pam_limit_s {
 			      specific user or to count all logins */
     int priority;	 /* the priority to run user process with */
     int nonewprivs;	/* whether to prctl(PR_SET_NO_NEW_PRIVS) */
+    char chroot_dir[8092]; /* directory to chroot into */
     struct user_limits_struct limits[RLIM_NLIMITS];
     const char *conf_file;
     int utmp_after_pam_call;
@@ -105,6 +106,7 @@ struct pam_limit_s {
 
 #define LIMIT_PRI RLIM_NLIMITS+3
 #define LIMIT_NONEWPRIVS RLIM_NLIMITS+4
+#define LIMIT_CHROOT RLIM_NLIMITS+5
 
 #define LIMIT_SOFT  1
 #define LIMIT_HARD  2
@@ -449,6 +451,14 @@ static void parse_kernel_limits(pam_handle_t *pamh, struct pam_limit_s *pl, int 
         pl->limits[i].src_hard = LIMITS_DEF_KERNEL;
     }
     fclose(limitsfile);
+
+    /* Cap the default soft nofile limit read from pid 1 to FD_SETSIZE
+     * since larger values can cause problems with fd_set overflow and
+     * systemd sets itself higher. */
+    if (pl->limits[RLIMIT_NOFILE].src_soft == LIMITS_DEF_KERNEL &&
+        pl->limits[RLIMIT_NOFILE].limit.rlim_cur > FD_SETSIZE) {
+      pl->limits[RLIMIT_NOFILE].limit.rlim_cur = FD_SETSIZE;
+    }
 }
 
 static int init_limits(pam_handle_t *pamh, struct pam_limit_s *pl, int ctrl)
@@ -493,6 +503,8 @@ static int init_limits(pam_handle_t *pamh, struct pam_limit_s *pl, int ctrl)
     pl->login_limit = -2;
     pl->login_limit_def = LIMITS_DEF_NONE;
 
+    pl->chroot_dir[0] = '\0';
+    
     return retval;
 }
 
@@ -600,6 +612,8 @@ process_limit (const pam_handle_t *pamh, int source, const char *lim_type,
 	limit_item = LIMIT_PRI;
     } else if (strcmp(lim_item, "nonewprivs") == 0) {
 	limit_item = LIMIT_NONEWPRIVS;
+    } else if (strcmp(lim_item, "chroot") == 0) {
+        limit_item = LIMIT_CHROOT;
     } else {
         pam_syslog(pamh, LOG_DEBUG, "unknown limit item '%s'", lim_item);
         return;
@@ -649,9 +663,9 @@ process_limit (const pam_handle_t *pamh, int source, const char *lim_type,
 			pam_syslog(pamh, LOG_DEBUG,
 				   "wrong limit value '%s' for limit type '%s'",
 				   lim_value, lim_type);
-            return;
+			return;
 		}
-	} else {
+	} else if (limit_item != LIMIT_CHROOT) {
 #ifdef __USE_FILE_OFFSET64
 		rlimit_value = strtoull (lim_value, &endptr, 10);
 #else
@@ -726,7 +740,11 @@ process_limit (const pam_handle_t *pamh, int source, const char *lim_type,
 	break;
     }
 
-    if ( (limit_item != LIMIT_LOGIN)
+    if (limit_item == LIMIT_CHROOT) {
+	strncpy(pl->chroot_dir, value_orig, sizeof(pl->chroot_dir)-1);
+        pl->chroot_dir[sizeof(pl->chroot_dir)-1]='\0';
+    }
+    else if ( (limit_item != LIMIT_LOGIN)
 	 && (limit_item != LIMIT_NUMSYSLOGINS)
 	 && (limit_item != LIMIT_PRI)
 	 && (limit_item != LIMIT_NONEWPRIVS) ) {
@@ -1044,9 +1062,21 @@ static int setup_limits(pam_handle_t *pamh,
         if (pl->limits[i].limit.rlim_cur > pl->limits[i].limit.rlim_max)
             pl->limits[i].limit.rlim_cur = pl->limits[i].limit.rlim_max;
 	res = setrlimit(i, &pl->limits[i].limit);
-	if (res != 0)
-	  pam_syslog(pamh, LOG_ERR, "Could not set limit for '%s': %m",
-		     rlimit2str(i));
+	if (res != 0 && (i != RLIMIT_NOFILE
+	                    || pl->limits[i].limit.rlim_cur != RLIM_INFINITY))
+	{
+		int save_errno = errno;
+		pam_syslog(pamh, LOG_DEBUG,
+		           "Could not set limit for '%s' to soft=%d, hard=%d:"
+		           " %m; uid=%lu,euid=%lu", rlimit2str(i),
+		           pl->limits[i].limit.rlim_cur,
+		           pl->limits[i].limit.rlim_max,
+		           (unsigned long) getuid(),
+		           (unsigned long) geteuid());
+		errno = save_errno;
+	}
+	if (res == -1 && errno == EPERM)
+	    continue;
 	status |= res;
     }
 
@@ -1084,6 +1114,15 @@ static int setup_limits(pam_handle_t *pamh,
 	}
     }
 
+    if (!retval && pl->chroot_dir[0]) {
+	i = chdir(pl->chroot_dir);
+	if (i == 0)
+	    i = chroot(pl->chroot_dir);
+	if (i == 0)
+	    i = chdir("/");
+	if (i != 0)
+	    retval = LIMIT_ERR;
+    }
     return retval;
 }
 

@@ -590,7 +590,7 @@ JH_CHECK_XML_CATALOG([http://docbook.sourceforge.net/release/xsl/current/manpage
 
 AC_PATH_PROG([BROWSER], [w3m])
 if test -n "$BROWSER"; then
-     BROWSER="$BROWSER -T text/html -dump"
+     BROWSER="LC_ALL=C.UTF-8 $BROWSER -T text/html -dump"
 else
      AC_PATH_PROG([BROWSER], [elinks])
      if test -n "$BROWSER"; then
@@ -685,6 +685,7 @@ AC_CONFIG_FILES([Makefile libpam/Makefile libpamc/Makefile libpamc/test/Makefile
 	modules/pam_access/Makefile \
         modules/pam_debug/Makefile modules/pam_deny/Makefile \
 	modules/pam_echo/Makefile modules/pam_env/Makefile \
+	modules/pam_extrausers/Makefile \
 	modules/pam_faildelay/Makefile modules/pam_faillock/Makefile \
 	modules/pam_filter/Makefile modules/pam_filter/upperLOWER/Makefile \
 	modules/pam_ftp/Makefile modules/pam_group/Makefile \

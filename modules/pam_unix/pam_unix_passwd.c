@@ -95,6 +95,9 @@ extern int getrpcport(const char *host, unsigned long prognum,
 # endif				/* GNU libc 2.1 */
 #endif
 
+extern const char *obscure_msg(const char *, const char *, const struct passwd *,
+			       unsigned int);
+
 /*
    How it works:
    Gets in username (has to be done) from the calling program
@@ -593,6 +596,11 @@ static int _pam_unix_approve_pass(pam_handle_t * pamh
 				return retval;
 			}
 		}
+		if (!remark && pass_old != NULL) { /* only check if we don't already have a failure */
+			struct passwd *pwd;
+			pwd = pam_modutil_getpwnam(pamh, user);
+			remark = (char *)obscure_msg(pass_old,pass_new,pwd,ctrl); /* do obscure checks */
+		}
 	}
 	if (remark) {
 		_make_remark(pamh, ctrl, PAM_ERROR_MSG, remark);
@@ -608,7 +616,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 	int retval;
 	int remember = -1;
 	int rounds = 0;
-	int pass_min_len = 0;
+	int pass_min_len = 6;
 
 	/* <DO NOT free() THESE> */
 	const char *user;
@@ -661,7 +669,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 		return PAM_USER_UNKNOWN;
 	} else {
 		struct passwd *pwd;
-		_unix_getpwnam(pamh, user, 1, 1, &pwd);
+		_unix_getpwnam(pamh, user, 1, on(UNIX_NIS, ctrl), &pwd);
 		if (pwd == NULL) {
 			pam_syslog(pamh, LOG_DEBUG,
 				"user \"%s\" has corrupted passwd entry",
@@ -700,9 +708,12 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 				    "password - (old) token not obtained");
 				return retval;
 			}
-			/* verify that this is the password for this user */
+			/* verify that this is the password for this user
+			 * if we're not using NIS */
 
-			retval = _unix_verify_password(pamh, user, pass_old, ctrl);
+			if (off(UNIX_NIS, ctrl)) {
+				retval = _unix_verify_password(pamh, user, pass_old, ctrl);
+			}
 		} else {
 			D(("process run by root so do nothing this time around"));
 			pass_old = NULL;

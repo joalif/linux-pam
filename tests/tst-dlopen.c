@@ -16,6 +16,11 @@
 #include <limits.h>
 #include <sys/stat.h>
 
+/* Hurd compatibility */
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 /* Simple program to see if dlopen() would succeed. */
 int main(int argc, char **argv)
 {
