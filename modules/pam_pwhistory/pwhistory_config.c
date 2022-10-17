@@ -55,11 +55,16 @@ parse_config_file(pam_handle_t *pamh, int argc, const char **argv,
     int i;
     char *val;
 
+    printf("%s : argc: %d\n",__func__, argc);
+
     for (i = 0; i < argc; ++i) {
         const char *str = pam_str_skip_prefix(argv[i], "conf=");
 
+	printf("argv[%d]: %s\n", i, argv[i]);
+
         if (str != NULL) {
             fname = str;
+	    printf("fname: %s\n", fname);
         }
     }
 
@@ -69,6 +74,7 @@ parse_config_file(pam_handle_t *pamh, int argc, const char **argv,
 
     val = pam_modutil_search_key (pamh, fname, "debug");
     if (val != NULL) {
+	printf("set debug\n");
         options->debug = 1;
         free(val);
     }

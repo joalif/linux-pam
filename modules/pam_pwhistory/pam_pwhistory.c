@@ -342,6 +342,7 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
   tries = 0;
   while ((newpass == NULL) && (tries < options.tries))
     {
+      printf("%s: tries: %d, options.tries: %d\n", tries, options.tries);
       retval = pam_get_authtok (pamh, PAM_AUTHTOK, &newpass, NULL);
       if (retval != PAM_SUCCESS && retval != PAM_TRY_AGAIN)
 	{
@@ -375,7 +376,7 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
 	      (flags & PAM_CHANGE_EXPIRED_AUTHTOK))
 	    {
 	      pam_error (pamh,
-		         _("Password has been already used. Choose another."));
+		         _("JO: Password has been already used. Choose another."));
 	      newpass = NULL;
 	      /* Remove password item, else following module will use it */
 	      pam_set_item (pamh, PAM_AUTHTOK, (void *) NULL);

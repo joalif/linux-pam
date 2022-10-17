@@ -263,6 +263,7 @@ save_old_pass, const char *user, int howmany, const char *filename, int debug UN
 	  (filename != NULL ? filename : DEFAULT_OLD_PASSWORDS_FILE);
   char opasswd_tmp[PATH_MAX];
 
+  printf("%s: oldpass file : %s\n", __func__, opasswd_file);
   if ((size_t) snprintf (opasswd_tmp, sizeof (opasswd_tmp), "%s.tmpXXXXXX",
 			 opasswd_file) >= sizeof (opasswd_tmp))
     return PAM_BUF_ERR;
