@@ -24,6 +24,8 @@ static int _pam_start_internal (
 {
     D(("called pam_start: [%s] [%s] [%p] [%p]"
        ,service_name, user, pam_conversation, pamh));
+    printf("called pam_start: [%s] [%s] [%p] [%p]\n"
+       ,service_name, user, pam_conversation, pamh);
 
     if (pamh == NULL) {
 	pam_syslog(NULL, LOG_CRIT,

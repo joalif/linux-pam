@@ -299,6 +299,7 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
     int retval, tries;
   options_t options;
 
+  printf("%s: from pam_pwhistory\n", __func__);
   memset (&options, 0, sizeof (options));
 
   /* Set some default values, which could be overwritten later.  */
@@ -314,12 +315,16 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
   if (options.debug)
     pam_syslog (pamh, LOG_DEBUG, "pam_sm_chauthtok entered");
 
-  if (options.remember == 0)
+  if (options.remember == 0) {
+	  printf("%s: return options.remember\n", __func__);
     return PAM_IGNORE;
+  }
 
   retval = pam_get_user (pamh, &user, NULL);
-  if (retval != PAM_SUCCESS)
+  if (retval != PAM_SUCCESS){
+	  printf("%s: return get_user\n", __func__);
     return retval;
+  }
 
   if (flags & PAM_PRELIM_CHECK)
     {
@@ -327,6 +332,7 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
 	pam_syslog (pamh, LOG_DEBUG,
 		    "pam_sm_chauthtok(PAM_PRELIM_CHECK)");
 
+	  printf("%s: return prelim_check\n", __func__);
       return PAM_SUCCESS;
     }
 
@@ -335,14 +341,15 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
   if (retval == PAM_PWHISTORY_RUN_HELPER)
       retval = run_save_helper(pamh, user, options.remember, options.filename, options.debug);
 
-  if (retval != PAM_SUCCESS)
+  if (retval != PAM_SUCCESS) {
+	  printf("%s: return retval !success\n", __func__);
     return retval;
-
+  }
   newpass = NULL;
   tries = 0;
   while ((newpass == NULL) && (tries < options.tries))
     {
-      printf("%s: tries: %d, options.tries: %d\n", tries, options.tries);
+      printf("%s: tries: %d, options.tries: %d\n", __func__, tries, options.tries);
       retval = pam_get_authtok (pamh, PAM_AUTHTOK, &newpass, NULL);
       if (retval != PAM_SUCCESS && retval != PAM_TRY_AGAIN)
 	{
@@ -391,8 +398,10 @@ pam_sm_chauthtok (pam_handle_t *pamh, int flags, int argc, const char **argv)
     {
       if (options.debug)
 	pam_syslog (pamh, LOG_DEBUG, "Aborted, too many tries");
+      printf("%s: return max_tries\n", __func__);
       return PAM_MAXTRIES;
     }
 
+      printf("%s: return success\n", __func__);
   return PAM_SUCCESS;
 }

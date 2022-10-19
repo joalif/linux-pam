@@ -14,6 +14,7 @@ int pam_chauthtok(pam_handle_t *pamh, int flags)
     int retval;
 
     D(("called."));
+    printf("IN %s\n",__func__);
 
     IF_NO_PAMH("pam_chauthtok", pamh, PAM_SYSTEM_ERR);
 
@@ -52,8 +53,10 @@ int pam_chauthtok(pam_handle_t *pamh, int flags)
 	_pam_sanitize(pamh);
 	pamh->former.update = PAM_FALSE;
 	_pam_await_timer(pamh, retval);   /* if unsuccessful then wait now */
+	printf("pam_chauthtok exit\n");
 	D(("pam_chauthtok exit %d - %d", retval, pamh->former.choice));
     } else {
+	printf("will resume when ready\n");
 	D(("will resume when ready", retval));
     }
 

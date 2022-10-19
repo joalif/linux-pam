@@ -624,6 +624,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 	const char *pass_old, *pass_new;
 	/* </DO NOT free() THESE> */
 
+	printf("%s called from %s\n", __func__, __FILE__);
+
 	D(("called."));
 
 	ctrl = _set_ctrl(pamh, flags, &remember, &rounds, &pass_min_len,
@@ -701,6 +703,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 				if (retval != PAM_SUCCESS)
 					return retval;
 			}
+			printf("Called from %s, %s, line 704\n", __FILE__, __func__);
 			retval = pam_get_authtok(pamh, PAM_OLDAUTHTOK, &pass_old, NULL);
 
 			if (retval != PAM_SUCCESS) {
@@ -712,6 +715,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 			 * if we're not using NIS */
 
 			if (off(UNIX_NIS, ctrl)) {
+				printf("Verify password\n");
 				retval = _unix_verify_password(pamh, user, pass_old, ctrl);
 			}
 		} else {
@@ -731,10 +735,13 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 			if (off(UNIX__IAMROOT, ctrl))
 				_make_remark(pamh, ctrl, PAM_ERROR_MSG,
 					     _("You must wait longer to change your password."));
-			else
+			else{
+				printf("In prelim check go to out\n");
 				retval = PAM_SUCCESS;
+			}
 		}
 	} else if (on(UNIX__UPDATE, ctrl)) {
+		printf("ENter unix_update\n");
 		/*
 		 * tpass is used below to store the _pam_md() return; it
 		 * should be _pam_delete()'d.
@@ -781,6 +788,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 			 * password -- needed for pluggable password strength checking
 			 */
 
+			printf("Called from %s, %s, line 785\n", __FILE__, __func__);
 			retval = pam_get_authtok(pamh, PAM_AUTHTOK, &pass_new, NULL);
 
 			if (retval != PAM_SUCCESS) {
@@ -874,6 +882,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 
 		_pam_delete(tpass);
 		pass_old = pass_new = NULL;
+		printf("exit unix update\n");
 	} else {		/* something has broken with the module */
 		pam_syslog(pamh, LOG_CRIT,
 		         "password received unknown request");

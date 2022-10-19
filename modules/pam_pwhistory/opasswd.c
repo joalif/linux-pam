@@ -119,6 +119,7 @@ parse_entry (char *line, opwd *data)
       return 1;
 
   data->old_passwords = strsep (&line, delimiters);
+  printf("%s: entry.count: %d, entry.pass: %s\n", __func__, data->count, data->old_passwords);
 
   return 0;
 }
@@ -137,6 +138,7 @@ compare_password(const char *newpass, const char *oldpass)
   outval = crypt (newpass, oldpass);
 #endif
 
+  printf("%s:\noldpass: %s\nnewpass: %s\noutval: %s\n", __func__, oldpass, newpass, outval);
   return outval != NULL && strcmp(outval, oldpass) == 0;
 }
 
@@ -150,6 +152,7 @@ check_old_pass, const char *user, const char *newpass, const char *filename, int
   size_t buflen = 0;
   opwd entry;
   int found = 0;
+  int my_counter = 0;
 
 #ifndef HELPER_COMPILE
   if (SELINUX_ENABLED)
@@ -159,6 +162,7 @@ check_old_pass, const char *user, const char *newpass, const char *filename, int
   const char *opasswd_file =
 	  (filename != NULL ? filename : DEFAULT_OLD_PASSWORDS_FILE);
 
+  printf("%s: pass file: %s\n", __func__, opasswd_file);
   if ((oldpf = fopen (opasswd_file, "r")) == NULL)
     {
       if (errno != ENOENT)
@@ -176,6 +180,7 @@ check_old_pass, const char *user, const char *newpass, const char *filename, int
 #else
       ssize_t n;
 
+
       if (buf == NULL)
         {
           buflen = DEFAULT_BUFLEN;
@@ -187,6 +192,11 @@ check_old_pass, const char *user, const char *newpass, const char *filename, int
       fgets (buf, buflen - 1, oldpf);
       n = strlen (buf);
 #endif /* HAVE_GETLINE / HAVE_GETDELIM */
+
+      my_counter++;
+      printf("%s: counter: %d\n", __func__, my_counter);
+      printf("%s: buf: %s\n", __func__, buf);
+
       cp = buf;
 
       if (n < 1)
@@ -222,11 +232,14 @@ check_old_pass, const char *user, const char *newpass, const char *filename, int
       const char delimiters[] = ",";
       char *running;
       char *oldpass;
+      int count=0;
 
       running = entry.old_passwords;
 
       do {
+	count++;
 	oldpass = strsep (&running, delimiters);
+	printf("%s: count: %d\n, odlpass: %s\n, newpass: %s\n", __func__, count, oldpass, newpass);
 	if (oldpass && strlen (oldpass) > 0 &&
 	    compare_password(newpass, oldpass) )
 	  {
@@ -293,6 +306,8 @@ save_old_pass, const char *user, int howmany, const char *filename, int debug UN
     }
   else
       oldpass = pwd->pw_passwd;
+
+  printf("%s: oldpass: %s\n", __func__, oldpass);
 
   if (oldpass == NULL || *oldpass == '\0')
     return PAM_SUCCESS;
@@ -413,6 +428,7 @@ save_old_pass, const char *user, int howmany, const char *filename, int debug UN
 	  {
 	    /* We found the line we needed */
 	    opwd entry;
+	    printf("%s: cp: %s\n", __func__, cp);
 
 	    if (parse_entry (cp, &entry) == 0)
 	      {

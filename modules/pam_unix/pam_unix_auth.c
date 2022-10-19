@@ -151,6 +151,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 	}
 	/* get this user's authentication token */
 
+	printf("Call get_auth from %s,%s\n", __FILE__, __func__);
 	retval = pam_get_authtok(pamh, PAM_AUTHTOK, &p , NULL);
 	if (retval != PAM_SUCCESS) {
 		if (retval != PAM_CONV_AGAIN) {

@@ -59,8 +59,6 @@ pam_modutil_search_key(pam_handle_t *pamh UNUSED,
 	size_t buflen = 0;
 	char *retval = NULL;
 
-	printf("%s: key: %s, file_name: %s\n", __func__, key, file_name);
-
 #ifdef USE_ECONF
 	if (strcmp (file_name, LOGIN_DEFS) == 0)
 		return econf_search_key ("login", ".defs", key);

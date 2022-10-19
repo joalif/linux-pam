@@ -150,6 +150,7 @@ pam_get_authtok_internal (pam_handle_t *pamh, int item,
 		    PROMPT_NEW_ARG, authtok_type) :
 	pam_prompt (pamh, PAM_PROMPT_ECHO_OFF, &resp[0],
 		    "%s", PROMPT_NEW_NOARG);
+	printf("%s, %s: ask for new pass\n",__FILE__,  __func__);
       if (retval == PAM_SUCCESS && chpass > 1 && resp[0] != NULL)
 	{
 	  retval = *authtok_type ?
@@ -157,6 +158,7 @@ pam_get_authtok_internal (pam_handle_t *pamh, int item,
 			PROMPT_RETYPE_ARG, authtok_type) :
 	    pam_prompt (pamh, PAM_PROMPT_ECHO_OFF, &resp[1],
 			"%s", PROMPT_RETYPE_NOARG);
+	printf("%s, %s: ask for retype new pass\n",__FILE__,  __func__);
 	}
     }
   else if (item == PAM_OLDAUTHTOK)
@@ -208,6 +210,7 @@ int
 pam_get_authtok (pam_handle_t *pamh, int item, const char **authtok,
 		 const char *prompt)
 {
+	printf("IN %s\n", __func__);
   return pam_get_authtok_internal (pamh, item, authtok, prompt, 0);
 }
 
