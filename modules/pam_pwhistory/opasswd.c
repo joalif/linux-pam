@@ -128,6 +128,16 @@ static int
 compare_password(const char *newpass, const char *oldpass)
 {
   char *outval;
+
+  int out = strcmp(newpass, oldpass);
+  int ret;
+  if (out==0)
+	  ret = 1;
+  else
+	  ret = 0;
+  printf("%s: newpass: %s, oldpass: %s, ret=%d\n", __func__, newpass, oldpass,ret);
+  return ret;
+	 
 #ifdef HAVE_CRYPT_R
   struct crypt_data output;
 
@@ -243,6 +253,7 @@ check_old_pass, const char *user, const char *newpass, const char *filename, int
 	if (oldpass && strlen (oldpass) > 0 &&
 	    compare_password(newpass, oldpass) )
 	  {
+		  printf("IN HERER!!!!!");
 	    if (debug)
 	      pam_syslog (pamh, LOG_DEBUG, "New password already used");
 	    retval = PAM_AUTHTOK_ERR;

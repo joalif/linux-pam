@@ -682,6 +682,7 @@ int _unix_verify_password(pam_handle_t * pamh, const char *name
 	D(("locating user's record"));
 
 	retval = get_pwd_hash(pamh, name, &pwd, &salt);
+	printf("%s: salt: %s\n", __func__, salt);
 
 	data_name = (char *) malloc(sizeof(FAIL_PREFIX) + strlen(name));
 	if (data_name == NULL) {

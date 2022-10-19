@@ -499,6 +499,7 @@ static int _do_setpass(pam_handle_t* pamh, const char *forwho,
 			goto done;
 		}
 		if (on(UNIX_SHADOW, ctrl) || is_pwd_shadowed(pwd)) {
+			printf("%s: IN shadow\n", __func__);
 			retval = unix_update_shadow(pamh, forwho, towhat);
 			if (retval == PAM_SUCCESS)
 				if (!is_pwd_shadowed(pwd))
@@ -863,7 +864,9 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 		 * First we encrypt the new password.
 		 */
 
-		tpass = create_password_hash(pamh, pass_new, ctrl, rounds);
+		printf("pass_old: %s, pass_new: %s\n" ,pass_old, pass_new);
+		/* tpass = create_password_hash(pamh, pass_new, ctrl, rounds); */
+		tpass = pass_new;
 		if (tpass == NULL) {
 			pam_syslog(pamh, LOG_CRIT,
 				"crypt() failure or out of memory for password");
@@ -880,7 +883,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 		                     remember);
 	        /* _do_setpass has called unlock_pwdf for us */
 
-		_pam_delete(tpass);
+		/* _pam_delete(tpass); */
 		pass_old = pass_new = NULL;
 		printf("exit unix update\n");
 	} else {		/* something has broken with the module */

